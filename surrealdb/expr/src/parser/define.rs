@@ -485,6 +485,8 @@ impl Lower<'_> {
 						s.graphql_deprecated = Some(self.string(c.a)?);
 					} else if kind == Cl::InlineEdges {
 						s.inline_edges_cap = Some(self.uint(c.a)?);
+					} else if kind == Cl::Expire {
+						s.expire_on = Some(self.name(c.a)?);
 					} else {
 						s.inline_refs_cap = Some(self.uint(c.a)?);
 					}

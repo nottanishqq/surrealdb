@@ -201,6 +201,11 @@ const NODE_DELETE_TIMEOUT: Duration = Duration::from_secs(60);
 /// a conflicting concurrent writer is reported as an error.
 const RPC_SESSION_WRITE_ATTEMPTS: u32 = 3;
 
+/// The most expired records one pass of the table expiry job deletes from one
+/// table, so a large backlog is deleted over several transactions rather than
+/// one.
+const TABLE_EXPIRY_BATCH: u64 = 1000;
+
 /// How long [`Datastore::shutdown`] waits for the maintenance tasks to finish
 /// their in-flight pass before giving up on a clean stop.
 ///
@@ -5938,6 +5943,123 @@ impl Datastore {
 		catch!(txn, txn.commit().await);
 		// All ok
 		Ok(())
+	}
+
+	// --------------------------------------------------
+	// Table expiry functions
+	// --------------------------------------------------
+
+	/// Deletes the records of `EXPIRE ON` tables whose expiry has passed, as a
+	/// background task.
+	///
+	/// A record expires once the field its table names holds a datetime at or
+	/// before the present; a record whose field holds anything else, or
+	/// nothing, never expires. Expired records are deleted through an ordinary
+	/// `DELETE` run as the root owner in the table's database, so the table's
+	/// events, indexes, changefeed and graph edges see the deletion as they
+	/// would see a user's. A record stays readable between its expiry and the
+	/// pass that deletes it.
+	///
+	/// Leased under [`TaskLeaseType::TableExpiry`], so one node of a cluster
+	/// deletes at a time. A pass visits every expiring table of the catalog and
+	/// deletes at most [`TABLE_EXPIRY_BATCH`] records from each, reporting
+	/// [`Progress::More`] when a table had more expired records than that.
+	///
+	/// # Arguments
+	/// * `interval` - The interval between passes, to calculate the lease duration
+	#[cfg_attr(
+		feature = "observability",
+		tracing::instrument(level = "trace", target = "surrealdb::core::kvs::ds", skip(self))
+	)]
+	pub(crate) async fn table_expiry_process(
+		&self,
+		interval: &Duration,
+		canceller: &CancellationToken,
+	) -> Result<Pass> {
+		use crate::catalog::providers::{DatabaseProvider, NamespaceProvider, TableProvider};
+
+		if self.is_read_only() {
+			return Ok(Pass::done(TaskLeaseState::NotLeased));
+		}
+		let lh = self.lease_handler(TaskLeaseType::TableExpiry, *interval * 2, None)?;
+		if !lh.has_lease().await? {
+			return Ok(Pass::elsewhere());
+		}
+		// shortcut: lists the whole catalog every pass; page it as the changefeed sweep does
+		// if catalogs with very many tables make this read noticeable.
+		let mut tables = Vec::new();
+		let txn = self.transaction(Read).await?;
+		let listed: Result<()> = async {
+			for ns in txn.all_ns(None).await?.iter() {
+				for db in txn.all_db(ns.namespace_id, None).await?.iter() {
+					for tb in txn.all_tb(ns.namespace_id, db.database_id, None).await?.iter() {
+						// A view's records are written by its sources, never deleted directly.
+						if let (Some(field), None) = (&tb.expire_on, &tb.view) {
+							tables.push((
+								ns.name.to_string(),
+								db.name.to_string(),
+								tb.name.to_string(),
+								field.clone(),
+							));
+						}
+					}
+				}
+			}
+			Ok(())
+		}
+		.await;
+		txn.cancel().await?;
+		listed?;
+		let mut pass = Pass::done(TaskLeaseState::Held);
+		for (ns, db, tb, field) in tables {
+			if canceller.is_cancelled() {
+				pass.progress = Progress::More;
+				break;
+			}
+			if !lh.try_maintain_lease().await? {
+				pass.lease = TaskLeaseState::Elsewhere;
+				break;
+			}
+			let field = surrealdb_types::ToSql::to_sql(&common::fmt::EscapeIdent(field.as_str()));
+			// The present is bound once, before the scan, so an index on the field can answer
+			// the range.
+			let sql = format!(
+				"LET $now = time::now();
+				LET $ids = SELECT VALUE id FROM type::table($tb)
+					WHERE type::is_datetime({field}) AND {field} <= $now LIMIT {TABLE_EXPIRY_BATCH};
+				DELETE $ids RETURN NONE;
+				RETURN array::len($ids);"
+			);
+			let vars = map! {
+				"tb".to_string() => tb.clone().into_value(),
+			};
+			let results = self
+				.execute(
+					&sql,
+					&Session::owner().with_ns(&ns).with_db(&db),
+					Some(vars.into_iter().collect::<BTreeMap<_, _>>().into()),
+				)
+				.await?;
+			let mut deleted = 0;
+			for result in results {
+				match result.result {
+					Ok(PublicValue::Number(n)) => deleted = n.to_int().unwrap_or(0) as u64,
+					Ok(_) => {}
+					Err(e) => {
+						warn!(
+							target: TARGET,
+							"Expired record deletion failed on table '{tb}' in {ns}/{db}: {e}"
+						);
+						break;
+					}
+				}
+			}
+			pass.items += deleted;
+			if deleted >= TABLE_EXPIRY_BATCH {
+				pass.progress = Progress::More;
+			}
+		}
+		Ok(pass)
 	}
 
 	// --------------------------------------------------

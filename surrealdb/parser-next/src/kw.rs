@@ -123,6 +123,7 @@ keywords! {
 	Exclude = "EXCLUDE",
 	Existing = "EXISTING",
 	Exists = "EXISTS",
+	Expire = "EXPIRE",
 	Expired = "EXPIRED",
 	Explain = "EXPLAIN",
 	Expunge = "EXPUNGE",

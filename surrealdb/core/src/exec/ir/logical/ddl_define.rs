@@ -1020,6 +1020,7 @@ pub(super) fn table_template(
 		inline_edges_cap: stmt.inline_edges_cap,
 		inline_refs_cap: stmt.inline_refs_cap,
 		graph_inline_gen: 0,
+		expire_on: stmt.expire_on.clone(),
 	}
 }
 

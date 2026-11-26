@@ -1205,6 +1205,7 @@ impl Visitor for ArrivalVisitor {
 			graphql_deprecated: _,
 			inline_edges_cap: _,
 			inline_refs_cap: _,
+			expire_on: _,
 		} [changefeed]
 		visit_permissions(Permissions) { select: _, create: _, update: _, delete: _ } []
 		visit_view(View) { expr: _, what: _, cond, group } [cond, group]

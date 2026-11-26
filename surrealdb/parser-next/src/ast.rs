@@ -587,6 +587,8 @@ pub enum Cl {
 	/// `BINDINGS` on an extension: `a` expression, which lowering requires to
 	/// be an object literal.
 	Bindings,
+	/// `EXPIRE ON field` on a table: `a` the field's `Name`.
+	Expire,
 }
 
 /// Slots of an HNSW or DiskANN record in `extra`. Absent parts are `NONE`.

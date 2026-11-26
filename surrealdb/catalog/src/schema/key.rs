@@ -1609,6 +1609,7 @@ mod tests {
 			inline_edges_cap: None,
 			inline_refs_cap: None,
 			graph_inline_gen: 0,
+			expire_on: None,
 		}
 	}
 

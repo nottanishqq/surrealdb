@@ -25,6 +25,12 @@ pub struct EngineOptions {
 	///
 	/// Default: 30 seconds
 	pub live_query_gc_interval: Duration,
+	/// Interval for deleting the records of `EXPIRE ON` tables whose expiry
+	/// datetime has passed. A record outlives its expiry by up to this interval
+	/// plus the passes a large backlog takes. Zero disables the job.
+	///
+	/// Default: 10 seconds
+	pub table_expiry_interval: Duration,
 	/// Interval for running the index compaction process
 	///
 	/// The index compaction thread runs at this interval to process indexes
@@ -171,6 +177,7 @@ impl Default for EngineOptions {
 			node_membership_cleanup_interval: Duration::from_secs(300),
 			changefeed_gc_interval: Duration::from_secs(30),
 			live_query_gc_interval: Duration::from_secs(30),
+			table_expiry_interval: Duration::from_secs(10),
 			index_compaction_interval: Duration::from_secs(5),
 			index_build_resume_interval: Duration::from_secs(30),
 			event_processing_interval: Duration::from_secs(5),
@@ -204,6 +211,12 @@ impl EngineOptions {
 	}
 	pub fn with_changefeed_gc_interval(mut self, interval: Duration) -> Self {
 		self.changefeed_gc_interval = interval;
+		self
+	}
+
+	/// Set the interval of the `EXPIRE ON` record expiry job
+	pub fn with_table_expiry_interval(mut self, interval: Duration) -> Self {
+		self.table_expiry_interval = interval;
 		self
 	}
 

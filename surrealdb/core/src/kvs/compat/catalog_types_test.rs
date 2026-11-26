@@ -72,7 +72,8 @@ use crate::val::{Datetime, TableName, Value};
 	inline_edges_cap: None,
 	inline_refs_cap: None,
 		graph_inline_gen: 0,
-}, 168)]
+	expire_on: None,
+}, 169)]
 #[case::subscription(StoredSubscriptionDefinition {
 	id: Uuid::default(),
 	node: Uuid::default(),

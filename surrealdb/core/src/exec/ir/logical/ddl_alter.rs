@@ -380,6 +380,7 @@ pub(super) fn plan_alter<'e>(
 				inline_edges_cap: None,
 				inline_refs_cap: None,
 				graph_inline_gen: 0,
+				expire_on: None,
 			};
 			if let Some(kind) = &stmt.kind {
 				altered.table_type = kind.clone();

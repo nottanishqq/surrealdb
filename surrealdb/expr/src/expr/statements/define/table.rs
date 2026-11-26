@@ -26,6 +26,8 @@ pub struct DefineTableStatement {
 	pub inline_edges_cap: Option<u32>,
 	/// Inline reference cache cap (`INLINE REFERENCES <n>`).
 	pub inline_refs_cap: Option<u32>,
+	/// The field holding each record's expiry datetime (`EXPIRE ON <field>`).
+	pub expire_on: Option<String>,
 }
 
 impl Default for DefineTableStatement {
@@ -45,6 +47,7 @@ impl Default for DefineTableStatement {
 			graphql_deprecated: None,
 			inline_edges_cap: None,
 			inline_refs_cap: None,
+			expire_on: None,
 		}
 	}
 }
@@ -112,6 +115,9 @@ impl ToSql for DefineTableStatement {
 		}
 		if let Some(cap) = self.inline_refs_cap {
 			write_sql!(f, sql_fmt, " INLINE REFERENCES {}", cap);
+		}
+		if let Some(ref field) = self.expire_on {
+			write_sql!(f, sql_fmt, " EXPIRE ON {}", EscapeKwFreeIdent(field));
 		}
 		if let Some(ref v) = self.view {
 			write_sql!(f, sql_fmt, " {}", v);

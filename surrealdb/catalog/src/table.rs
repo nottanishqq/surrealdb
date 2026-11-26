@@ -75,7 +75,7 @@ impl revision::WalkRevisioned for TableId {
 	}
 }
 
-#[revisioned(revision = 4)]
+#[revisioned(revision = 5)]
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Stored)]
 #[stored(since = "4.0", revision_embedded)]
 pub struct StoredTableDefinition {
@@ -212,6 +212,19 @@ pub struct StoredTableDefinition {
 	#[revision(start = 4)]
 	#[stored(n = 44)]
 	pub graph_inline_gen: u32,
+
+	/// The top-level field holding each record's expiry datetime (the
+	/// `EXPIRE ON` clause). A record whose field holds a datetime at or before
+	/// the present is deleted by the expiry job; a record whose field holds
+	/// anything else never expires. `None` disables expiry for the table.
+	#[revision(start = 5)]
+	#[stored(
+		n = 45,
+		since = "4.1",
+		ignorable,
+		independent = "a release that skips it leaves expired records in place, as it would without the clause"
+	)]
+	pub expire_on: Option<String>,
 }
 
 impl_kv_value_catalog!(StoredTableDefinition);
@@ -259,6 +272,7 @@ impl StoredTableDefinition {
 			inline_edges_cap: None,
 			inline_refs_cap: None,
 			graph_inline_gen: 0,
+			expire_on: None,
 		}
 	}
 }
@@ -283,6 +297,7 @@ impl TableDefinition {
 			graphql_deprecated: self.graphql_deprecated.clone(),
 			inline_edges_cap: self.inline_edges_cap,
 			inline_refs_cap: self.inline_refs_cap,
+			expire_on: self.expire_on.clone(),
 			..Default::default()
 		}
 	}
@@ -311,6 +326,7 @@ impl InfoStructure for TableDefinition {
 			"graph_doc_ids", if self.graph_doc_ids => true.into(),
 			"inline_edges_cap", if let Some(v) = self.inline_edges_cap => (v as i64).into(),
 			"inline_refs_cap", if let Some(v) = self.inline_refs_cap => (v as i64).into(),
+			"expire_on", if let Some(v) = self.expire_on => v.into(),
 			"id" => self.table_id.0.into(),
 		})
 	}
@@ -360,6 +376,8 @@ pub struct TableDefinition {
 	pub inline_refs_cap: Option<u32>,
 	/// See [`StoredTableDefinition::graph_inline_gen`].
 	pub graph_inline_gen: u32,
+	/// See [`StoredTableDefinition::expire_on`].
+	pub expire_on: Option<String>,
 }
 
 /// The SELECT permission guarding a table, for callers holding a table lookup
@@ -406,6 +424,7 @@ impl FromStored for TableDefinition {
 				inline_edges_cap: stored.inline_edges_cap,
 				inline_refs_cap: stored.inline_refs_cap,
 				graph_inline_gen: stored.graph_inline_gen,
+				expire_on: stored.expire_on.clone(),
 			})
 		}
 		build(stored).with_context(|| {
@@ -472,6 +491,7 @@ impl TableDefinition {
 			inline_edges_cap: self.inline_edges_cap,
 			inline_refs_cap: self.inline_refs_cap,
 			graph_inline_gen: self.graph_inline_gen,
+			expire_on: self.expire_on.clone(),
 		}
 	}
 }
@@ -538,6 +558,7 @@ mod tests {
 			inline_edges_cap: None,
 			inline_refs_cap: None,
 			graph_inline_gen: 0,
+			expire_on: None,
 		}
 	}
 

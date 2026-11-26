@@ -63,6 +63,8 @@ pub enum TaskLeaseType {
 	/// disable: a node holding a lease the two shared for the one job it runs
 	/// would keep every other node from running the other.
 	LiveQueryCleanup,
+	/// Deleting the records of `EXPIRE ON` tables whose expiry has passed
+	TableExpiry,
 }
 
 impl Encode for TaskLeaseType {
@@ -78,6 +80,7 @@ impl Encode for TaskLeaseType {
 			TaskLeaseType::GraphFold => w.write_u16(8),
 			TaskLeaseType::TableMigration => w.write_u16(9),
 			TaskLeaseType::LiveQueryCleanup => w.write_u16(10),
+			TaskLeaseType::TableExpiry => w.write_u16(11),
 		}
 	}
 }
@@ -95,6 +98,7 @@ impl<'de> BorrowDecode<'de> for TaskLeaseType {
 			8 => TaskLeaseType::GraphFold,
 			9 => TaskLeaseType::TableMigration,
 			10 => TaskLeaseType::LiveQueryCleanup,
+			11 => TaskLeaseType::TableExpiry,
 			_ => return Err(DecodeError::InvalidFormat),
 		})
 	}

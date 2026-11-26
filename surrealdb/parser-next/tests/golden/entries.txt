@@ -2247,7 +2247,7 @@ cb082dede822093a language-tests/tests/language/primitive/files/pointer_functions
 aee77bc3f01935fb language-tests/tests/language/primitive/files/pointer_methods.surql
 637d82a2a68ba135 language-tests/tests/language/primitive/files/presign.surql
 3e6313bc731a4d7a language-tests/tests/language/primitive/files/presign_no_secret.surql
-8c280e5361cea4bd language-tests/tests/language/primitive/files/presign_permissions.surql
+566cfa80cdd2cde9 language-tests/tests/language/primitive/files/presign_permissions.surql
 6ea4c468ed52b0d6 language-tests/tests/language/primitive/files/presign_readonly.surql
 85705f3ccb5af164 language-tests/tests/language/primitive/files/readonly.surql
 79bed1877545f1ee language-tests/tests/language/primitive/files/util/presign_buckets.surql
@@ -2926,6 +2926,8 @@ c0cc9b8fe8776b8e language-tests/tests/language/statements/define/param/shadowed.
 58ee6c808067d1a7 language-tests/tests/language/statements/define/sequence/alter_sequence.surql
 5ae20e5c9759bf41 language-tests/tests/language/statements/define/sequence/define_sequence.surql
 3eb7dbcf6aee5221 language-tests/tests/language/statements/define/table/drop.surql
+2a15887499c2146a language-tests/tests/language/statements/define/table/expire.surql
+7692aa08c70e22bd language-tests/tests/language/statements/define/table/expire_repeated.surql
 c6a3747cce46bae4 language-tests/tests/language/statements/define/table/id_components_table_conversion_refused.surql
 f26cb740ac3aef6b language-tests/tests/language/statements/define/table/inline_cache.surql
 0b917036c622ebe6 language-tests/tests/language/statements/define/table/lightweight.surql

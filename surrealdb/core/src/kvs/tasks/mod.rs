@@ -220,13 +220,15 @@ pub enum Job {
 	DiskannWriterLeases,
 	/// Refresh the cached process/system utilisation metrics.
 	SystemMetricsRefresh,
+	/// Delete the records of `EXPIRE ON` tables whose expiry has passed.
+	TableExpiry,
 }
 
 impl Job {
 	/// Every variant. A new variant belongs here and in exactly one of
 	/// [`Self::DEDICATED`], [`Self::MAINTENANCE`] or [`Self::SWEEP`].
 	#[cfg(test)]
-	const ALL: [Self; 18] = [
+	const ALL: [Self; 19] = [
 		Self::Heartbeat,
 		Self::EventProcessing,
 		Self::EventAdoption,
@@ -245,6 +247,7 @@ impl Job {
 		Self::LockCleanup,
 		Self::DiskannWriterLeases,
 		Self::SystemMetricsRefresh,
+		Self::TableExpiry,
 	];
 
 	/// The jobs that keep a task of their own; see [`init`] for why each does.
@@ -295,13 +298,16 @@ impl Job {
 	/// user-defined SurrealQL. The two maintenance jobs are calls into the storage
 	/// cluster whose duration the engine does not control. None of them belongs
 	/// alongside the jobs whose pass length follows the catalog; they share a
-	/// task with each other instead.
-	const SWEEP: [Self; 5] = [
+	/// task with each other instead. Table expiry bounds its pass by a record
+	/// budget, but each record it deletes runs that table's events, which are
+	/// user-defined SurrealQL.
+	const SWEEP: [Self; 6] = [
 		Self::ReclaimTombstones,
 		Self::RpcSessionGc,
 		Self::EventAdoption,
 		Self::MvccGc,
 		Self::LockCleanup,
+		Self::TableExpiry,
 	];
 
 	/// Description used in log lines.
@@ -325,6 +331,7 @@ impl Job {
 			Self::LockCleanup => "lock cleanup",
 			Self::DiskannWriterLeases => "idle DiskANN writer lease release",
 			Self::SystemMetricsRefresh => "system metrics refresh",
+			Self::TableExpiry => "expired record deletion",
 		}
 	}
 
@@ -350,6 +357,7 @@ impl Job {
 			Self::LockCleanup => "tikv_lock_cleanup",
 			Self::DiskannWriterLeases => "diskann_writer_leases",
 			Self::SystemMetricsRefresh => "system_metrics_refresh",
+			Self::TableExpiry => "table_expiry",
 		}
 	}
 
@@ -373,6 +381,7 @@ impl Job {
 			Self::LockCleanup => opts.lock_cleanup_interval,
 			Self::DiskannWriterLeases => opts.diskann_writer_lease_release_interval,
 			Self::SystemMetricsRefresh => opts.system_metrics_refresh_interval,
+			Self::TableExpiry => opts.table_expiry_interval,
 		}
 	}
 
@@ -391,7 +400,8 @@ impl Job {
 			| Self::LiveQueryGc
 			| Self::ReclaimTombstones
 			| Self::ResumeIndexBuilds
-			| Self::RpcSessionGc => TaskLeaseState::Held,
+			| Self::RpcSessionGc
+			| Self::TableExpiry => TaskLeaseState::Held,
 			Self::Heartbeat
 			| Self::EventProcessing
 			| Self::LiveQueryRouter
@@ -471,6 +481,7 @@ async fn run_job(
 				.await
 		}
 		Job::RpcSessionGc => dbs.purge_expired_rpc_sessions(&opts.rpc_session_gc_interval).await,
+		Job::TableExpiry => dbs.table_expiry_process(&opts.table_expiry_interval, canceller).await,
 		Job::MvccGc => unleased(dbs.run_mvcc_gc(opts.mvcc_gc_lifetime).await),
 		Job::LockCleanup => unleased(dbs.run_lock_cleanup(opts.mvcc_gc_lifetime).await),
 		Job::DiskannWriterLeases => unleased(dbs.release_idle_writer_leases().await.map(|_| ())),

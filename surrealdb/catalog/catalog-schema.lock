@@ -685,6 +685,7 @@ type StoredTableDefinition struct since=4.0 reserved=[] revision_embedded
   40 inline_edges_cap option<int:u32> critical since=4.0 absent=none
   42 inline_refs_cap option<int:u32> critical since=4.0 absent=none
   44 graph_inline_gen int:u32 critical since=4.0 absent=required
+  45 expire_on option<string> ignorable since=4.1 absent=none independent="a release that skips it leaves expired records in place, as it would without the clause"
 type StoredTypeAssert struct since=4.0 reserved=[]
   2 name option<string> critical since=4.0 absent=none
   4 check text:expr critical since=4.0 absent=required

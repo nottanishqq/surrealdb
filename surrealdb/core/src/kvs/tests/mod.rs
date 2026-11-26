@@ -84,6 +84,8 @@ mod shared_store_materialise_test;
 #[cfg(feature = "kv-mem")]
 mod stale_read_test;
 #[cfg(feature = "kv-mem")]
+mod table_expiry_test;
+#[cfg(feature = "kv-mem")]
 mod table_migration_resilience_test;
 #[cfg(feature = "kv-mem")]
 mod table_migration_test;

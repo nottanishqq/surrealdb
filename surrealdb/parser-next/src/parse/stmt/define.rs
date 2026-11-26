@@ -741,11 +741,11 @@ impl<'a, 's> Parser<'a, 's> {
 	}
 
 	/// The clauses of a table definition. Each of `COMMENT`, `DROP`, `TYPE`, `PERMISSIONS`,
-	/// `CHANGEFEED`, `AS`, `INLINE EDGES`, `INLINE REFERENCES`, `GRAPHQL ALIAS` and
-	/// `GRAPHQL DEPRECATED` may appear once, and `SCHEMAFULL` and `SCHEMALESS` share one
-	/// slot, so a later clause never silently replaces an earlier one.
+	/// `CHANGEFEED`, `AS`, `INLINE EDGES`, `INLINE REFERENCES`, `GRAPHQL ALIAS`,
+	/// `GRAPHQL DEPRECATED` and `EXPIRE ON` may appear once, and `SCHEMAFULL` and `SCHEMALESS`
+	/// share one slot, so a later clause never silently replaces an earlier one.
 	pub(crate) fn table_clauses(&mut self) -> R<()> {
-		let mut seen: [Option<Tok>; 11] = [None; 11];
+		let mut seen: [Option<Tok>; 12] = [None; 12];
 		loop {
 			let t = self.tok;
 			let slot = if t.kw == Kw::Comment {
@@ -770,6 +770,8 @@ impl<'a, 's> Parser<'a, 's> {
 				Some(9)
 			} else if t.kw == Kw::GraphqlDeprecated {
 				Some(10)
+			} else if t.kw == Kw::Expire {
+				Some(11)
 			} else {
 				None
 			};
@@ -819,6 +821,12 @@ impl<'a, 's> Parser<'a, 's> {
 				self.string_clause(Cl::GraphqlAlias)?;
 			} else if self.tok.kw == Kw::GraphqlDeprecated {
 				self.string_clause(Cl::GraphqlDeprecated)?;
+			} else if self.tok.kw == Kw::Expire {
+				let t = self.bump();
+				let first = self.ast.nodes.len();
+				self.expect_kw(Kw::On, "ON")?;
+				let field = self.name()?;
+				self.push_clause(Cl::Expire, field, 0, t.start, first)?;
 			} else {
 				return Ok(());
 			}

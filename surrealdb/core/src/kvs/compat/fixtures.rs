@@ -143,6 +143,7 @@ pub fn table_basic() -> StoredTableDefinition {
 		inline_edges_cap: None,
 		inline_refs_cap: None,
 		graph_inline_gen: 0,
+		expire_on: None,
 	}
 }
 
@@ -184,6 +185,7 @@ pub fn table_with_view() -> StoredTableDefinition {
 		inline_edges_cap: None,
 		inline_refs_cap: None,
 		graph_inline_gen: 0,
+		expire_on: None,
 	}
 }
 
@@ -216,6 +218,7 @@ pub fn table_schemafull() -> StoredTableDefinition {
 		inline_edges_cap: None,
 		inline_refs_cap: None,
 		graph_inline_gen: 0,
+		expire_on: None,
 	}
 }
 
@@ -255,6 +258,7 @@ pub fn table_relation() -> StoredTableDefinition {
 		inline_edges_cap: None,
 		inline_refs_cap: None,
 		graph_inline_gen: 0,
+		expire_on: None,
 	}
 }
 
@@ -293,6 +297,7 @@ pub fn table_with_stored_clauses() -> StoredTableDefinition {
 		inline_edges_cap: None,
 		inline_refs_cap: None,
 		graph_inline_gen: 0,
+		expire_on: None,
 	}
 }
 
@@ -326,6 +331,7 @@ pub fn table_with_materialized_view() -> StoredTableDefinition {
 		inline_edges_cap: None,
 		inline_refs_cap: None,
 		graph_inline_gen: 0,
+		expire_on: None,
 	}
 }
 
@@ -355,6 +361,7 @@ pub fn table_any_type() -> StoredTableDefinition {
 		inline_edges_cap: None,
 		inline_refs_cap: None,
 		graph_inline_gen: 0,
+		expire_on: None,
 	}
 }
 
